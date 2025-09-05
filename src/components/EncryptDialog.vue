@@ -40,6 +40,7 @@ export default {
   props: {
     file: { type: Object, required: true },
     onClose: { type: Function, required: true },
+    onCreated: { type: Function, required: false },
   },
   data: () => ({
     show: true,
@@ -77,6 +78,7 @@ export default {
         const relPath = this.computeRelPath(node)
         const outName = await this.encryptClientSide(recipient.publicKey, relPath)
         showSuccess(this.t('mpencrypt', 'Arquivo criptografado gerado: {name}', { name: outName }))
+        this.onCreated && this.onCreated({ name: outName })
         this.close()
       } catch (e) {
         console.error('[mpencrypt] Encryption failed', e)
@@ -92,6 +94,7 @@ export default {
           const res = await encryptFile(payload)
           const outName = res?.name || 'arquivo.pgp'
           showSuccess(this.t('mpencrypt', 'Arquivo criptografado gerado: {name}', { name: outName }))
+          this.onCreated && this.onCreated({ name: outName })
           this.close()
           return
         } catch (serverErr) {

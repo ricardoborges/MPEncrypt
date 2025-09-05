@@ -33,7 +33,7 @@ try {
         return isFileNode(node)
     },
 		// Exec receives (nodes, view)
-		exec: async (nodes /*, view */) => {
+		exec: async (nodes, view) => {
         const node = getSingleNode(nodes)
         console.log('[mpencrypt] Encrypt action clicked for:', node)
         if (!isFileNode(node)) {
@@ -51,7 +51,16 @@ try {
 				mount.remove()
 			}
 			vm = new Vue({
-				render: h => h(EncryptDialog, { props: { file: node, onClose: destroy } }),
+				render: h => h(EncryptDialog, { props: { file: node, onClose: destroy, onCreated: (_info) => {
+            let triggered = false
+            try { if (view && typeof view.reload === 'function') { view.reload(); triggered = true } } catch {}
+            try { if (view && view.fileList && typeof view.fileList.reload === 'function') { view.fileList.reload(); triggered = true } } catch {}
+            try { if (window && window.OCA && window.OCA.Files && window.OCA.Files.App && window.OCA.Files.App.fileList && typeof window.OCA.Files.App.fileList.reload === 'function') { window.OCA.Files.App.fileList.reload(); triggered = true } } catch {}
+            // As a pragmatic fallback, force a page refresh if nothing above could be called
+            if (!triggered) {
+              setTimeout(() => { try { window.location && window.location.reload && window.location.reload() } catch {} }, 600)
+            }
+          } } }),
 			})
 			vm.$mount(mount)
 		},
