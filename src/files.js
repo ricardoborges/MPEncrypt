@@ -1,5 +1,7 @@
+import Vue from 'vue'
 import { registerFileAction } from '@nextcloud/files'
 import { showSuccess } from '@nextcloud/dialogs'
+import EncryptDialog from './components/EncryptDialog.vue'
 
 console.log('[mpencrypt] Registering Files action...')
 
@@ -22,7 +24,20 @@ try {
 		exec: async (nodes /*, view */) => {
 			const node = getSingleNode(nodes)
 			console.log('[mpencrypt] Encrypt action clicked for:', node)
-			showSuccess(`Preparando criptografia para: ${node?.name || 'arquivo'}`)
+			// Mount modal dialog programmatically
+			const mount = document.createElement('div')
+			document.body.appendChild(mount)
+			let vm
+			const destroy = () => {
+				if (vm) {
+					vm.$destroy()
+				}
+				mount.remove()
+			}
+			vm = new Vue({
+				render: h => h(EncryptDialog, { props: { file: node, onClose: destroy } }),
+			})
+			vm.$mount(mount)
 		},
 	}
 
@@ -31,3 +46,5 @@ try {
 } catch (error) {
 	console.error('[mpencrypt] Error registering Files action:', error)
 }
+// Provide l10n helpers for this entrypoint (separate from main.js)
+Vue.mixin({ methods: { t: window.t, n: window.n } })
