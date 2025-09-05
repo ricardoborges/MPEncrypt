@@ -18,3 +18,8 @@ export async function deleteRecipient(id) {
   await axios.delete(url(`/recipients/${id}`))
 }
 
+export async function encryptFile(payload) {
+  // payload: { recipientId, fileId?, filePath? }
+  const { data } = await axios.post(url('/encrypt'), payload)
+  return data?.ocs?.data ?? data
+}
