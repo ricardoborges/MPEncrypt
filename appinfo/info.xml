@@ -2,10 +2,10 @@
 <info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	  xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
 	<id>mpencrypt</id>
-	<name>M P Encrypt</name>
+	<name>MPEncrypt</name>
 	<summary>Criptografar e Descriptografar Arquivos</summary>
 	<description>Este plugin permite ao usuário criptografar arquivos usando PGP</description>
-	<version>1.0.0</version>
+	<version>1.0.1</version>
 	<licence>agpl</licence>
 	<author mail="ricardo.silva@mpba.mp.br" homepage="">Ricardo Borges</author>
 	<namespace>MPEncrypt</namespace>
@@ -18,7 +18,7 @@
 	<navigations>
 		<navigation>
 			<id>mpencrypt</id>
-			<name>M P Encrypt</name>
+			<name>MPEncrypt</name>
 			<route>mpencrypt.page.index</route>
 			<icon>app.svg</icon>
 			<type>link</type>
