@@ -23,3 +23,25 @@ export async function encryptFile(payload) {
   const { data } = await axios.post(url('/encrypt'), payload)
   return data?.ocs?.data ?? data
 }
+
+// Private key API
+export async function getPrivateKeyMeta() {
+  const { data } = await axios.get(url('/private-key'))
+  const res = data?.ocs?.data ?? data
+  return res || { exists: false }
+}
+
+export async function getPrivateKeyValue() {
+  const { data } = await axios.get(url('/private-key/value'))
+  const res = data?.ocs?.data ?? data
+  return res?.privateKey || ''
+}
+
+export async function setPrivateKey(privateKey) {
+  const { data } = await axios.post(url('/private-key'), { privateKey })
+  return data?.ocs?.data ?? data
+}
+
+export async function deletePrivateKey() {
+  await axios.delete(url('/private-key'))
+}

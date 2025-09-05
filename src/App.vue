@@ -27,6 +27,28 @@
           </li>
         </ul>
       </div>
+
+      <hr />
+
+      <div class="private">
+        <h2>{{ t('mpencrypt', 'Chave Privada do Usuário') }}</h2>
+        <div class="status">
+          <strong>{{ t('mpencrypt', 'Status') }}:</strong>
+          <span>{{ private.exists ? t('mpencrypt', 'Cadastrada') : t('mpencrypt', 'Não cadastrada') }}</span>
+        </div>
+        <form class="form" @submit.prevent="onSavePrivate">
+          <NcTextArea v-model="privateForm.value" :label="t('mpencrypt', 'Chave privada (ASCII-Armored)')" :minRows="6" :placeholder="t('mpencrypt', 'Cole sua chave privada aqui')" />
+          <div class="actions">
+            <NcButton type="submit" :disabled="savingPrivate || !privateForm.value">
+              {{ savingPrivate ? t('mpencrypt', 'Salvando...') : t('mpencrypt', private.exists ? 'Atualizar' : 'Cadastrar') }}
+            </NcButton>
+            <NcButton v-if="private.exists" type="button" :disabled="deletingPrivate" @click="onDeletePrivate">
+              {{ deletingPrivate ? t('mpencrypt', 'Excluindo...') : t('mpencrypt', 'Excluir') }}
+            </NcButton>
+          </div>
+          <div class="hint">{{ t('mpencrypt', 'Após salvar, o conteúdo não será exibido novamente nesta tela.') }}</div>
+        </form>
+      </div>
     </div>
   </NcAppContent>
 </template>
@@ -36,7 +58,7 @@ import NcAppContent from '@nextcloud/vue/dist/Components/NcAppContent.js'
 import NcTextField from '@nextcloud/vue/dist/Components/NcTextField.js'
 import NcTextArea from '@nextcloud/vue/dist/Components/NcTextArea.js'
 import NcButton from '@nextcloud/vue/dist/Components/NcButton.js'
-import { listRecipients, createRecipient, deleteRecipient } from './api'
+import { listRecipients, createRecipient, deleteRecipient, getPrivateKeyMeta, setPrivateKey, deletePrivateKey } from './api'
 
 export default {
   name: 'App',
@@ -47,9 +69,13 @@ export default {
     saving: false,
     deletingId: null,
     form: { name: '', publicKey: '' },
+    private: { exists: false },
+    privateForm: { value: '' },
+    savingPrivate: false,
+    deletingPrivate: false,
   }),
   async mounted() {
-    await this.refresh()
+    await Promise.all([this.refresh(), this.refreshPrivate()])
   },
   methods: {
     async refresh() {
@@ -59,6 +85,9 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+    async refreshPrivate() {
+      this.private = await getPrivateKeyMeta()
     },
     async onSave() {
       if (!this.form.name || !this.form.publicKey) return
@@ -81,6 +110,26 @@ export default {
         this.deletingId = null
       }
     },
+    async onSavePrivate() {
+      if (!this.privateForm.value) return
+      this.savingPrivate = true
+      try {
+        await setPrivateKey(this.privateForm.value)
+        this.privateForm.value = ''
+        await this.refreshPrivate()
+      } finally {
+        this.savingPrivate = false
+      }
+    },
+    async onDeletePrivate() {
+      this.deletingPrivate = true
+      try {
+        await deletePrivateKey()
+        await this.refreshPrivate()
+      } finally {
+        this.deletingPrivate = false
+      }
+    },
     keyPreview(pub) {
       const s = String(pub || '').trim().split('\n').filter(Boolean)
       const head = s[0] || ''
@@ -99,4 +148,7 @@ export default {
 .item .name { font-weight: 600; }
 .item .fingerprint { color: var(--color-text-maxcontrast); font-family: monospace; font-size: 12px; }
 .loading, .empty { color: var(--color-text-maxcontrast); }
+.private { margin-top: 24px; }
+.private .actions { display: flex; gap: 8px; align-items: center; }
+.status { margin-bottom: 8px; }
 </style>

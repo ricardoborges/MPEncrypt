@@ -2,6 +2,7 @@ import Vue from 'vue'
 import { registerFileAction } from '@nextcloud/files'
 import { showError } from '@nextcloud/dialogs'
 import EncryptDialog from './components/EncryptDialog.vue'
+import DecryptDialog from './components/DecryptDialog.vue'
 
 console.log('[mpencrypt] Registering Files action...')
 
@@ -17,6 +18,9 @@ const isFileNode = (node) => {
     if (!node.name && !node.basename) return false
     return true
 }
+const getName = (node) => (node && (node.name || node.basename || node.filename)) || ''
+const isPgpMime = (m) => typeof m === 'string' && (m === 'application/pgp-encrypted' || m === 'application/pgp' || m === 'application/gnupg')
+const isPgpName = (n) => /\.(pgp|gpg|asc)$/i.test(String(n || ''))
 
 // Register a "Criptografar" action in the Files app context menu.
 try {
@@ -73,3 +77,45 @@ try {
 }
 // Provide l10n helpers for this entrypoint (separate from main.js)
 Vue.mixin({ methods: { t: window.t, n: window.n } })
+
+// Register a "Descriptografar" action for PGP files
+try {
+    // Open lock icon for decrypt
+    const icon = () => '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17 11V7a5 5 0 10-10 0h2a3 3 0 116 0v4h-8a2 2 0 00-2 2v6a2 2 0 002 2h12a2 2 0 002-2v-6a2 2 0 00-2-2h-2z"/></svg>'
+    const decryptAction = {
+        id: 'mpencrypt-decrypt',
+        displayName: () => 'Descriptografar',
+        iconSvgInline: () => icon(),
+        order: 51,
+        enabled: (nodes /*, view */) => {
+            const node = getSingleNode(nodes)
+            if (!isFileNode(node)) return false
+            const n = getName(node)
+            return isPgpName(n) || isPgpMime(node.mimetype)
+        },
+        exec: async (nodes, view) => {
+            const node = getSingleNode(nodes)
+            if (!isFileNode(node)) return
+            const n = getName(node)
+            if (!(isPgpName(n) || isPgpMime(node.mimetype))) return
+            const mount = document.createElement('div')
+            document.body.appendChild(mount)
+            let vm
+            const destroy = () => { if (vm) vm.$destroy(); mount.remove() }
+            vm = new Vue({
+                render: h => h(DecryptDialog, { props: { file: node, onClose: destroy, onCreated: () => {
+                    let triggered = false
+                    try { if (view && typeof view.reload === 'function') { view.reload(); triggered = true } } catch {}
+                    try { if (view && view.fileList && typeof view.fileList.reload === 'function') { view.fileList.reload(); triggered = true } } catch {}
+                    try { if (window && window.OCA && window.OCA.Files && window.OCA.Files.App && window.OCA.Files.App.fileList && typeof window.OCA.Files.App.fileList.reload === 'function') { window.OCA.Files.App.fileList.reload(); triggered = true } } catch {}
+                    if (!triggered) setTimeout(() => { try { window.location && window.location.reload && window.location.reload() } catch {} }, 600)
+                } } }),
+            })
+            vm.$mount(mount)
+        },
+    }
+    registerFileAction(decryptAction)
+    console.log('[mpencrypt] Decrypt action registered successfully')
+} catch (error) {
+    console.error('[mpencrypt] Error registering Decrypt action:', error)
+}
